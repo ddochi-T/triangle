@@ -1,0 +1,157 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "rooms": {
+      "$code": {
+        ".read": "auth != null && (!data.exists() || (data.child('expiresAt').val() > now && ((data.child('host/uid').val() == auth.uid || data.child('guest/uid').val() == auth.uid) || (data.child('game/phase').val() == 'waiting' && !data.child('guest').exists()))))",
+        ".write": "auth != null && ((!newData.exists() && data.child('host/uid').val() == auth.uid) || (newData.exists() && ((!data.exists() && newData.child('host/uid').val() == auth.uid) || (data.child('expiresAt').val() > now && ((data.child('host/uid').val() == auth.uid || data.child('guest/uid').val() == auth.uid) || (data.child('game/phase').val() == 'waiting' && !data.child('guest').exists() && newData.child('guest/uid').val() == auth.uid))))))",
+        ".validate": "newData.hasChildren(['version','host','config','game','log','createdAt','expiresAt']) && (!data.exists() ? (newData.child('game/phase').val() == 'waiting' && newData.child('game/count').val() == 0 && newData.child('game/turn').val() == 0 && newData.child('game/starter').val() == 0 && newData.child('game/rpsRound').val() == 0 && newData.child('log').val() == '' && !newData.child('guest').exists() && !newData.child('rps').exists()) : ((newData.child('game/count').val() == data.child('game/count').val() && newData.child('log').val() == data.child('log').val() && (newData.child('game/turn').val() == data.child('game/turn').val() || (data.child('game/phase').val() == 'rps' && newData.child('game/phase').val() == 'playing' && newData.child('game/count').val() == 0 && newData.child('rps').child('r' + newData.child('game/rpsRound').val()).child('h/hand').val() != null && newData.child('rps').child('r' + newData.child('game/rpsRound').val()).child('g/hand').val() != null && newData.child('rps').child('r' + newData.child('game/rpsRound').val()).child('h/hand').val() != newData.child('rps').child('r' + newData.child('game/rpsRound').val()).child('g/hand').val() && newData.child('game/starter').val() == (newData.child('rps').child('r' + newData.child('game/rpsRound').val()).child('h/hand').val() == (newData.child('rps').child('r' + newData.child('game/rpsRound').val()).child('g/hand').val() + 1) % 3 ? 0 : 1) && newData.child('game/turn').val() == newData.child('game/starter').val()))) || (data.child('game/phase').val() == 'playing' && newData.child('game/phase').val() == 'playing' && newData.child('game/count').val() == data.child('game/count').val() + 1 && newData.child('game/turn').val() == 1 - data.child('game/turn').val() && newData.child('last/p').val() == data.child('game/turn').val() && (data.child('game/turn').val() == 0 ? data.child('host/uid').val() : data.child('guest/uid').val()) == auth.uid && newData.child('log').val() == data.child('log').val() + newData.child('last/a').val() + ',' + newData.child('last/b').val() + ',' + newData.child('last/p').val() + ';'))) && (!data.hasChild('guest') || newData.hasChild('guest')) && (!data.hasChild('rps') || newData.hasChild('rps'))",
+        "version": {
+          ".validate": "newData.val() == 1"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber() && (!data.exists() ? (newData.val() >= now - 600000 && newData.val() <= now + 600000) : newData.val() == data.val())"
+        },
+        "expiresAt": {
+          ".validate": "newData.isNumber() && (!data.exists() ? (newData.val() == newData.parent().child('createdAt').val() + 21600000) : newData.val() == data.val())"
+        },
+        "host": {
+          ".validate": "newData.hasChildren(['uid','name']) && (!data.exists() || (newData.child('uid').val() == data.child('uid').val() && newData.child('name').val() == data.child('name').val()))",
+          "uid": {
+            ".validate": "newData.isString() && (data.exists() ? newData.val() == data.val() : newData.val() == auth.uid)"
+          },
+          "name": {
+            ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 12 && (!data.exists() || newData.val() == data.val())"
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "guest": {
+          ".validate": "newData.hasChildren(['uid','name']) && (!data.exists() || (newData.child('uid').val() == data.child('uid').val() && newData.child('name').val() == data.child('name').val()))",
+          "uid": {
+            ".validate": "newData.isString() && (data.exists() ? newData.val() == data.val() : newData.val() == auth.uid)"
+          },
+          "name": {
+            ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 12 && (!data.exists() || newData.val() == data.val())"
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "config": {
+          ".validate": "newData.hasChildren(['n','seed'])",
+          "n": {
+            ".validate": "(newData.val() == 12 || newData.val() == 20 || newData.val() == 30) && (!data.exists() || newData.val() == data.val())"
+          },
+          "seed": {
+            ".validate": "newData.isNumber() && newData.val() % 1 == 0 && newData.val() >= 0 && newData.val() <= 4294967295 && (!data.exists() || newData.val() == data.val())"
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "log": {
+          ".validate": "newData.isString() && newData.val().length <= 4096"
+        },
+        "game": {
+          ".validate": "newData.hasChildren(['phase','count','turn','starter','rpsRound']) && (!data.exists() || newData.child('phase').val() != 'playing' || data.child('phase').val() == 'playing' || (data.parent().child('game/phase').val() == 'rps' && newData.parent().child('game/phase').val() == 'playing' && newData.parent().child('game/count').val() == 0 && newData.parent().child('rps').child('r' + newData.parent().child('game/rpsRound').val()).child('h/hand').val() != null && newData.parent().child('rps').child('r' + newData.parent().child('game/rpsRound').val()).child('g/hand').val() != null && newData.parent().child('rps').child('r' + newData.parent().child('game/rpsRound').val()).child('h/hand').val() != newData.parent().child('rps').child('r' + newData.parent().child('game/rpsRound').val()).child('g/hand').val() && newData.parent().child('game/starter').val() == (newData.parent().child('rps').child('r' + newData.parent().child('game/rpsRound').val()).child('h/hand').val() == (newData.parent().child('rps').child('r' + newData.parent().child('game/rpsRound').val()).child('g/hand').val() + 1) % 3 ? 0 : 1) && newData.parent().child('game/turn').val() == newData.parent().child('game/starter').val()))",
+          "phase": {
+            ".validate": "!data.exists() ? newData.val() == 'waiting' : ((data.val() == 'waiting' && (newData.val() == 'waiting' || (newData.val() == 'rps' && newData.parent().parent().child('guest').exists()))) || (data.val() == 'rps' && (newData.val() == 'rps' || newData.val() == 'playing')) || (data.val() == 'playing' && newData.val() == 'playing'))"
+          },
+          "count": {
+            ".validate": "newData.isNumber() && newData.val() % 1 == 0 && newData.val() >= 0 && newData.val() <= 100"
+          },
+          "turn": {
+            ".validate": "newData.val() == 0 || newData.val() == 1"
+          },
+          "starter": {
+            ".validate": "(newData.val() == 0 || newData.val() == 1) && (!data.exists() || data.parent().child('phase').val() != 'playing' || newData.val() == data.val())"
+          },
+          "rpsRound": {
+            ".validate": "newData.isNumber() && newData.val() % 1 == 0 && newData.val() >= 0 && newData.val() <= 100 && (!data.exists() || newData.val() == data.val() || (newData.val() == data.val() + 1 && data.parent().child('phase').val() == 'rps' && newData.parent().child('phase').val() == 'rps' && data.parent().parent().child('rps').child('r' + data.val()).child('h/hand').val() != null && data.parent().parent().child('rps').child('r' + data.val()).child('h/hand').val() == data.parent().parent().child('rps').child('r' + data.val()).child('g/hand').val()))"
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "last": {
+          ".validate": "newData.hasChildren(['a','b','p']) && newData.child('a').val() != newData.child('b').val()",
+          "a": {
+            ".validate": "newData.isNumber() && newData.val() % 1 == 0 && newData.val() >= 0 && newData.val() < newData.parent().parent().child('config/n').val()"
+          },
+          "b": {
+            ".validate": "newData.isNumber() && newData.val() % 1 == 0 && newData.val() >= 0 && newData.val() < newData.parent().parent().child('config/n').val()"
+          },
+          "p": {
+            ".validate": "newData.val() == 0 || newData.val() == 1"
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "rps": {
+          ".validate": "!data.exists() || newData.hasChild('r' + data.parent().child('game/rpsRound').val())",
+          "$round": {
+            ".validate": "(!data.exists() ? $round == 'r' + newData.parent().parent().child('game/rpsRound').val() : ((!data.hasChild('h') || newData.hasChild('h')) && (!data.hasChild('g') || newData.hasChild('g'))))",
+            "h": {
+              ".validate": "newData.hasChildren(['commit']) && ((data.exists() && newData.child('commit').val() == data.child('commit').val() && newData.child('hand').val() == data.child('hand').val() && newData.child('nonce').val() == data.child('nonce').val()) || (auth.uid == newData.parent().parent().parent().child('host/uid').val() && newData.parent().parent().parent().child('game/phase').val() == 'rps' && (!data.exists() || (newData.child('commit').val() == data.child('commit').val() && !data.hasChild('hand'))))) && (newData.hasChild('hand') == newData.hasChild('nonce'))",
+              "commit": {
+                ".validate": "newData.isString() && newData.val().matches(/^[a-f0-9]{64}$/)"
+              },
+              "hand": {
+                ".validate": "newData.val() == 0 || newData.val() == 1 || newData.val() == 2"
+              },
+              "nonce": {
+                ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 64"
+              },
+              "$other": {
+                ".validate": false
+              }
+            },
+            "g": {
+              ".validate": "newData.hasChildren(['commit']) && ((data.exists() && newData.child('commit').val() == data.child('commit').val() && newData.child('hand').val() == data.child('hand').val() && newData.child('nonce').val() == data.child('nonce').val()) || (auth.uid == newData.parent().parent().parent().child('guest/uid').val() && newData.parent().parent().parent().child('game/phase').val() == 'rps' && (!data.exists() || (newData.child('commit').val() == data.child('commit').val() && !data.hasChild('hand'))))) && (newData.hasChild('hand') == newData.hasChild('nonce'))",
+              "commit": {
+                ".validate": "newData.isString() && newData.val().matches(/^[a-f0-9]{64}$/)"
+              },
+              "hand": {
+                ".validate": "newData.val() == 0 || newData.val() == 1 || newData.val() == 2"
+              },
+              "nonce": {
+                ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 64"
+              },
+              "$other": {
+                ".validate": false
+              }
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "presence": {
+      "$code": {
+        ".read": "auth != null && (root.child('rooms').child($code).child('host/uid').val() == auth.uid || root.child('rooms').child($code).child('guest/uid').val() == auth.uid)",
+        "$uid": {
+          ".write": "auth != null && (root.child('rooms').child($code).child('host/uid').val() == auth.uid || root.child('rooms').child($code).child('guest/uid').val() == auth.uid) && $uid == auth.uid",
+          ".validate": "newData.hasChildren(['online','lastSeen'])",
+          "online": {
+            ".validate": "newData.isBoolean()"
+          },
+          "lastSeen": {
+            ".validate": "newData.isNumber()"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
+    }
+  }
+}
